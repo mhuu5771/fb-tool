@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 import time
 import re
 import os
@@ -18,8 +17,8 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    # Đường dẫn tuyệt đối trong Docker
-    chrome_options.binary_location = "/usr/bin/google-chrome"
+    
+    # KHÔNG CẦN set binary_location vì Image đã có sẵn đường dẫn chuẩn
 
     driver = None
     final_results = []
@@ -27,8 +26,8 @@ def get_deep_uids(start_url, limit):
     queue = [start_url]
     
     try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Trong Image này, chromedriver đã nằm sẵn trong PATH
+        driver = webdriver.Chrome(options=chrome_options)
         
         while len(final_results) < limit and queue:
             current_target = queue.pop(0)
@@ -46,7 +45,7 @@ def get_deep_uids(start_url, limit):
                         if len(final_results) >= limit: break
             except: continue
     except Exception as e:
-        print(f"LỖI: {str(e)}")
+        print(f"LỖI THỰC TẾ: {str(e)}")
     finally:
         if driver: driver.quit()
     return final_results
@@ -64,5 +63,5 @@ def scan():
     except: return jsonify([])
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5002))
     app.run(host='0.0.0.0', port=port)

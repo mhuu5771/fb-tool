@@ -1,22 +1,16 @@
-FROM python:3.10-slim
+# Sử dụng Image đã cài sẵn Chrome và Python
+FROM joyzoursky/python-selenium:3.9-chrome
 
-# Cài đặt các thư viện cần thiết và Google Chrome
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    unzip \
-    curl \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list' \
-    && apt-get update && apt-get install -y google-chrome-stable \
-    && apt-get clean
-
+# Thiết lập thư mục làm việc
 WORKDIR /app
 
+# Copy requirements và cài đặt
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy toàn bộ code
 COPY . .
 
-# Chạy bằng Gunicorn với cấu hình cổng của Render
+# Chạy ứng dụng bằng Gunicorn
+# Render sẽ truyền cổng qua biến $PORT
 CMD gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
