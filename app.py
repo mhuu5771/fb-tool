@@ -12,19 +12,6 @@ app = Flask(__name__)
 def get_phone_api(uid):
     return f"09{str(uid)[-8:]}"
 
-def find_chrome_bin():
-    # Danh sách các đường dẫn mà Render thường cài Chrome
-    paths = [
-        os.environ.get("GOOGLE_CHROME_BIN"),
-        "/usr/bin/google-chrome",
-        "/app/.apt/usr/bin/google-chrome",
-        "/app/.render/chrome/opt/google/chrome/google-chrome"
-    ]
-    for path in paths:
-        if path and os.path.exists(path):
-            return path
-    return None
-
 def get_deep_uids(start_url, limit):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
@@ -32,12 +19,11 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     
-    bin_path = find_chrome_bin()
-    if bin_path:
-        chrome_options.binary_location = bin_path
-        print(f"--- Đã tìm thấy Chrome tại: {bin_path}")
-    else:
-        print("--- KHÔNG TÌM THẤY CHROME BINARY TRÊN HỆ THỐNG!")
+    # Ép buộc sử dụng đường dẫn chuẩn của Buildpack Chrome trên Render
+    # Nếu không tìm thấy, Selenium sẽ cố gắng tự chạy mặc định
+    chrome_bin = os.environ.get("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
+    if os.path.exists(chrome_bin):
+        chrome_options.binary_location = chrome_bin
 
     driver = None
     final_results = []
@@ -45,9 +31,11 @@ def get_deep_uids(start_url, limit):
     queue = [start_url]
     
     try:
-        # Sử dụng ChromeDriverManager để tự tải Driver tương thích
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Sử dụng bản cài đặt sạch nhất
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()), 
+            options=chrome_options
+        )
         
         while len(final_results) < limit and queue:
             current_target = queue.pop(0)
@@ -67,7 +55,7 @@ def get_deep_uids(start_url, limit):
                         if len(final_results) >= limit: break
             except: continue
     except Exception as e:
-        print(f"LỖI HỆ THỐNG CHI TIẾT: {str(e)}")
+        print(f"LỖI THỰC TẾ: {str(e)}")
     finally:
         if driver: driver.quit()
     return final_results
