@@ -18,12 +18,8 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    
-    # Ép buộc sử dụng đường dẫn chuẩn của Buildpack Chrome trên Render
-    # Nếu không tìm thấy, Selenium sẽ cố gắng tự chạy mặc định
-    chrome_bin = os.environ.get("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
-    if os.path.exists(chrome_bin):
-        chrome_options.binary_location = chrome_bin
+    # Đường dẫn mặc định của Chrome trong Docker Linux
+    chrome_options.binary_location = "/usr/bin/google-chrome"
 
     driver = None
     final_results = []
@@ -31,19 +27,14 @@ def get_deep_uids(start_url, limit):
     queue = [start_url]
     
     try:
-        # Sử dụng bản cài đặt sạch nhất
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()), 
-            options=chrome_options
-        )
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         
         while len(final_results) < limit and queue:
             current_target = queue.pop(0)
             try:
                 driver.get(current_target)
                 time.sleep(5)
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
                 page_source = driver.page_source
                 uids_found = re.findall(r'(?:"id":"|id=)([0-9]{13,15})', page_source)
                 for uid in uids_found:
@@ -55,7 +46,7 @@ def get_deep_uids(start_url, limit):
                         if len(final_results) >= limit: break
             except: continue
     except Exception as e:
-        print(f"LỖI THỰC TẾ: {str(e)}")
+        print(f"LỖI: {str(e)}")
     finally:
         if driver: driver.quit()
     return final_results
@@ -73,5 +64,4 @@ def scan():
     except: return jsonify([])
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5002))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5002)
