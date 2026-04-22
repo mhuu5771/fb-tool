@@ -1,16 +1,15 @@
-# Sử dụng Image đã cài sẵn Chrome và Python
+# Sử dụng Image chuẩn đã cài sẵn Python và Chrome
 FROM joyzoursky/python-selenium:3.9-chrome
 
-# Thiết lập thư mục làm việc
 WORKDIR /app
 
-# Copy requirements và cài đặt
+# Copy và cài đặt thư viện
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy toàn bộ code
+# Copy toàn bộ code vào máy chủ
 COPY . .
 
-# Chạy ứng dụng bằng Gunicorn
-# Render sẽ truyền cổng qua biến $PORT
-CMD gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
+# Tăng timeout lên 300 giây (5 phút) để tránh lỗi WORKER TIMEOUT
+# Chạy 1 worker để tiết kiệm RAM trên Render Free tier
+CMD gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --threads 4 app:app
