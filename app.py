@@ -19,34 +19,17 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     
+    # Ép dùng đúng binary nếu chạy trên Linux (Render)
+    if os.name == 'posix':
+        chrome_options.binary_location = "/usr/bin/google-chrome"
+
     driver = None
     final_results = []
     
     try:
-        # KIỂM TRA ĐƯỜNG DẪN THỰC TẾ TRÊN RENDER
-        # Image joyzoursky thường dùng Chromium thay vì Google Chrome bản thương mại
-        possible_chrome_paths = [
-            "/usr/bin/google-chrome",
-            "/usr/bin/chromium",
-            "/usr/bin/chromium-browser"
-        ]
-        
-        chrome_path = None
-        for path in possible_chrome_paths:
-            if os.path.exists(path):
-                chrome_path = path
-                break
-
-        if chrome_path:
-            # CHẠY TRÊN RENDER
-            chrome_options.binary_location = chrome_path
-            # chromedriver trong image này thường nằm cùng thư mục /usr/bin/
-            service = Service(executable_path="/usr/bin/chromedriver")
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-        else:
-            # CHẠY DƯỚI LOCAL (MÁY MẠNH)
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Tự động tải Driver khớp với bản Chrome đã cài ở Dockerfile trên
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         
         driver.set_page_load_timeout(60)
         driver.get(start_url)
