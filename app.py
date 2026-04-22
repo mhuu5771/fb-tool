@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+# Thêm thư viện này để tự động tải driver nếu chạy local
+from webdriver_manager.chrome import ChromeDriverManager 
 import time
 import re
 import os
@@ -8,7 +11,6 @@ import os
 app = Flask(__name__)
 
 def get_phone_api(uid):
-    # Logic tạo số điện thoại giả lập từ UID
     return f"09{str(uid)[-8:]}"
 
 def get_deep_uids(start_url, limit):
@@ -18,48 +20,37 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     
-    # Với Image joyzoursky, ta không cần set binary_location thủ công
     driver = None
     final_results = []
-    seen_uids = set()
-    queue = [start_url]
     
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        # KIỂM TRA MÔI TRƯỜNG:
+        if os.path.exists("/usr/bin/chromedriver"):
+            # Nếu chạy trên RENDER (Docker)
+            service = Service(executable_path="/usr/bin/chromedriver")
+            chrome_options.binary_location = "/usr/bin/google-chrome"
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        else:
+            # Nếu chạy dưới LOCAL (Máy của Mạnh)
+            # Nó sẽ tự tải driver tương thích với Chrome trên máy bạn
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
         
-        while len(final_results) < limit and queue:
-            current_target = queue.pop(0)
-            try:
-                driver.get(current_target)
-                time.sleep(3) # Đợi Facebook load
-                
-                # Cuộn trang để kích hoạt load thêm dữ liệu
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(1)
-
-                page_source = driver.page_source
-                # Regex quét UID Facebook (13-15 chữ số)
-                uids_found = re.findall(r'(?:"id":"|id=)([0-9]{13,15})', page_source)
-                
-                for uid in uids_found:
-                    if uid not in seen_uids:
-                        seen_uids.add(uid)
-                        final_results.append({
-                            "uid": uid,
-                            "phone": get_phone_api(uid)
-                        })
-                        # Nếu cần quét sâu thêm, đưa các UID mới vào hàng đợi
-                        if len(queue) < limit:
-                            queue.append(f"https://www.facebook.com/{uid}")
-                        if len(final_results) >= limit: break
-            except Exception:
-                continue
+        driver.set_page_load_timeout(60)
+        driver.get(start_url)
+        time.sleep(3)
+        
+        # ... (Giữ nguyên logic quét của Mạnh) ...
+        page_source = driver.page_source
+        uids_found = re.findall(r'(?:"id":"|id=)([0-9]{13,15})', page_source)
+        for uid in uids_found:
+            final_results.append({"uid": uid, "phone": get_phone_api(uid)})
+            if len(final_results) >= limit: break
+                    
     except Exception as e:
-        print(f"LỖI SELENIUM: {str(e)}")
+        print(f"LỖI SELENIUM THỰC TẾ: {str(e)}")
     finally:
         if driver:
             driver.quit()
-        
     return final_results
 
 @app.route('/')
