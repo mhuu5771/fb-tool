@@ -2,52 +2,48 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>FB Tool Pro - Deep Scan</title>
+    <title>FB UID Scanner - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-[#0d1117] text-gray-200 p-6 md:p-12">
+<body class="bg-[#0d1117] text-gray-200 p-4 md:p-10">
     <div class="max-w-5xl mx-auto bg-[#161b22] border border-gray-800 rounded-3xl shadow-2xl overflow-hidden">
         
         <div class="p-8 bg-[#1c2128] border-b border-gray-800 flex justify-between items-center">
-            <h1 class="text-xl font-black text-blue-500 tracking-tighter uppercase">Thu Thập dữ liệu SĐT Facebook</h1>
-            <button onclick="exportCSV()" id="exportBtn" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition">
-                <i class="fa-solid fa-file-excel mr-2"></i> Xuất File CSV
+            <h1 class="text-xl font-black text-blue-500 tracking-tighter uppercase">Ứng dụng lấy SĐT Facebook</h1>
+            <button onclick="exportCSV()" id="exportBtn" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-sm font-bold transition">
+                <i class="fa-solid fa-file-csv mr-2"></i> Xuất CSV
             </button>
         </div>
 
         <div class="p-8 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="md:col-span-2">
-                <input type="text" id="url" placeholder="Dán link Facebook cần quét..." 
-                       class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition">
+                <input type="text" id="url" placeholder="Dán link Facebook..." class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition">
             </div>
             <div>
-                <input type="number" id="limit" value="50" 
-                       class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="number" id="limit" value="20" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            <button onclick="startScan()" id="btn" class="bg-blue-600 hover:bg-blue-500 p-4 rounded-2xl font-bold transition shadow-lg shadow-blue-900/20">
-                BẮT ĐẦU QUÉT
-            </button>
+            <button onclick="startScan()" id="btn" class="bg-blue-600 hover:bg-blue-500 p-4 rounded-2xl font-bold transition">QUÉT NGAY</button>
         </div>
 
         <div id="progressArea" class="hidden px-8 mb-6">
             <div class="flex justify-between text-xs mb-2 text-blue-400 font-mono">
-                <span>Đang xử lý dữ liệu đệ quy...</span>
+                <span id="statusText">Đang khởi tạo trình duyệt ngầm...</span>
                 <span id="percentText">0%</span>
             </div>
-            <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden">
-                <div id="progressBar" class="bg-blue-500 h-full w-0 transition-all duration-700 ease-out"></div>
+            <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                <div id="progressBar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
             </div>
         </div>
 
         <div class="p-8 pt-0">
-            <div class="rounded-2xl border border-gray-800 overflow-hidden">
+            <div class="rounded-2xl border border-gray-800 overflow-hidden bg-[#0d1117]">
                 <table class="w-full text-left">
-                    <thead class="bg-[#1c2128] text-gray-500 text-xs uppercase">
+                    <thead class="bg-[#21262d] text-gray-500 text-xs uppercase">
                         <tr>
-                            <th class="p-4 border-b border-gray-800">STT</th>
-                            <th class="p-4 border-b border-gray-800">UID Facebook</th>
-                            <th class="p-4 border-b border-gray-800 text-green-500">Số điện thoại</th>
+                            <th class="p-4">STT</th>
+                            <th class="p-4">UID Facebook</th>
+                            <th class="p-4 text-green-500 font-bold">Số điện thoại</th>
                         </tr>
                     </thead>
                     <tbody id="resultBody" class="divide-y divide-gray-800"></tbody>
@@ -69,24 +65,21 @@
             const tbody = document.getElementById('resultBody');
             const exportBtn = document.getElementById('exportBtn');
 
-            if(!url) return alert("Vui lòng nhập link!");
+            if(!url) return alert("Vui lòng dán link!");
 
-            // Reset UI
             btn.disabled = true;
-            btn.innerText = "ĐANG QUÉT...";
             progressArea.classList.remove('hidden');
             exportBtn.classList.add('hidden');
             tbody.innerHTML = '';
             
-            // Giả lập tiến trình (vì fetch là 1 lần)
             let progress = 0;
             const interval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 1;
+                if (progress < 95) {
+                    progress += (95 - progress) * 0.1;
                     progressBar.style.width = progress + '%';
-                    percentText.innerText = progress + '%';
+                    percentText.innerText = Math.round(progress) + '%';
                 }
-            }, 200);
+            }, 500);
 
             try {
                 const response = await fetch('/scan', {
@@ -95,43 +88,43 @@
                     body: JSON.stringify({url, limit})
                 });
                 const data = await response.json();
-                fullData = data;
-
-                // Hoàn thành tiến trình
+                
                 clearInterval(interval);
                 progressBar.style.width = '100%';
                 percentText.innerText = '100%';
 
-                data.forEach((item, index) => {
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-gray-800/30 transition">
-                            <td class="p-4 text-gray-600 text-xs">${index + 1}</td>
-                            <td class="p-4 text-sm font-mono text-gray-400">${item.uid}</td>
-                            <td class="p-4 font-bold text-emerald-500 font-mono tracking-tighter">${item.phone}</td>
-                        </tr>`;
-                });
-
-                if(data.length > 0) exportBtn.classList.remove('hidden');
-
+                if (data && Array.isArray(data) && data.length > 0) {
+                    fullData = data;
+                    data.forEach((item, index) => {
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-800/40 transition border-b border-gray-800">
+                                <td class="p-4 text-gray-600 text-xs">${index + 1}</td>
+                                <td class="p-4 text-sm font-mono text-gray-400">${item.uid}</td>
+                                <td class="p-4 font-bold text-emerald-500 font-mono tracking-tighter">${item.phone}</td>
+                            </tr>`;
+                    });
+                    exportBtn.classList.remove('hidden');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-gray-500">Không tìm thấy dữ liệu hoặc lỗi kết nối.</td></tr>';
+                }
             } catch (e) {
-                alert("Lỗi: " + e);
+                console.error(e);
+                alert("Lỗi hệ thống!");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "BẮT ĐẦU QUÉT";
                 setTimeout(() => progressArea.classList.add('hidden'), 3000);
             }
         }
 
         function exportCSV() {
-            if(fullData.length === 0) return;
-            let csv = "STT,UID,SoDienThoai\n";
+            let csv = "STT,UID,Phone\n";
             fullData.forEach((item, index) => {
                 csv += `${index + 1},'${item.uid},${item.phone}\n`;
             });
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `khach_hang_fb_${Date.now()}.csv`;
+            link.download = `data_fb_${Date.now()}.csv`;
             link.click();
         }
     </script>
