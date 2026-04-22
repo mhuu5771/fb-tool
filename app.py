@@ -18,7 +18,7 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    # Đường dẫn mặc định của Chrome trong Docker Linux
+    # Đường dẫn tuyệt đối trong Docker
     chrome_options.binary_location = "/usr/bin/google-chrome"
 
     driver = None
@@ -64,4 +64,5 @@ def scan():
     except: return jsonify([])
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
