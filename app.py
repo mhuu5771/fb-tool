@@ -23,18 +23,28 @@ def get_deep_uids(start_url, limit):
     final_results = []
     
     try:
-        # TỰ ĐỘNG KIỂM TRA ĐƯỜNG DẪN CHROME
-        render_chrome_path = "/usr/bin/google-chrome"
-        render_driver_path = "/usr/bin/chromedriver"
+        # KIỂM TRA ĐƯỜNG DẪN THỰC TẾ TRÊN RENDER
+        # Image joyzoursky thường dùng Chromium thay vì Google Chrome bản thương mại
+        possible_chrome_paths = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser"
+        ]
+        
+        chrome_path = None
+        for path in possible_chrome_paths:
+            if os.path.exists(path):
+                chrome_path = path
+                break
 
-        if os.path.exists(render_chrome_path):
+        if chrome_path:
             # CHẠY TRÊN RENDER
-            chrome_options.binary_location = render_chrome_path
-            service = Service(executable_path=render_driver_path)
+            chrome_options.binary_location = chrome_path
+            # chromedriver trong image này thường nằm cùng thư mục /usr/bin/
+            service = Service(executable_path="/usr/bin/chromedriver")
             driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
             # CHẠY DƯỚI LOCAL (MÁY MẠNH)
-            # Không cần set binary_location, webdriver-manager tự lo
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=chrome_options)
         
