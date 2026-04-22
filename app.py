@@ -17,18 +17,24 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
+    
+    # Chỉ định chính xác vị trí Chrome trong Image joyzoursky
     chrome_options.binary_location = "/usr/bin/google-chrome"
 
     driver = None
     final_results = []
     
     try:
-        # Chỉ định thẳng file driver đã tải trong Dockerfile
-        service = Service(executable_path="/usr/local/bin/chromedriver")
+        # TRONG IMAGE NÀY, CHROMEDRIVER LUÔN NẰM Ở ĐÂY:
+        service = Service(executable_path="/usr/bin/chromedriver")
+        
+        # Khởi tạo driver với service và options đã fix cứng path
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
         driver.get(start_url)
-        time.sleep(5) 
+        # Tăng thời gian chờ lên một chút vì Render Free hơi chậm
+        time.sleep(6) 
+        
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
@@ -47,6 +53,7 @@ def get_deep_uids(start_url, limit):
     finally:
         if driver:
             driver.quit()
+        
     return final_results
 
 @app.route('/')
@@ -57,9 +64,11 @@ def index():
 def scan():
     try:
         data = request.json
-        results = get_deep_uids(data.get('url'), int(data.get('limit', 10)))
+        url = data.get('url')
+        limit = int(data.get('limit', 20))
+        results = get_deep_uids(url, limit)
         return jsonify(results if results else [])
-    except:
+    except Exception:
         return jsonify([])
 
 if __name__ == '__main__':
