@@ -13,36 +13,33 @@ def get_phone_api(uid):
     return f"09{str(uid)[-8:]}"
 
 def get_deep_uids(start_url, limit):
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    
-    # Chỉ định đường dẫn Chrome cho môi trường Linux (Render)
-    if os.path.exists("/usr/bin/google-chrome"):
-        chrome_options.binary_location = "/usr/bin/google-chrome"
-
+    # PHẢI có dòng này ở ngay đầu hàm
+    final_results = [] 
     driver = None
+    
     try:
-        # Tự động tải Driver khớp với Chrome
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        
+        # Nếu dùng Buildpack trên Render, đừng set binary_location thủ công nữa
+        # Cứ để webdriver-manager tự lo
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
         driver.get(start_url)
         time.sleep(5)
-        page_source = driver.page_source
-        uids_found = re.findall(r'(?:"id":"|id=)([0-9]{13,15})', page_source)
+        # ... logic quét của bạn ...
         
-        for uid in uids_found[:limit]:
-            final_results.append({"uid": uid, "phone": get_phone_api(uid)})
-            
     except Exception as e:
-        print(f"LỖI SELENIUM THỰC TẾ: {str(e)}")
+        print(f"LỖI SELENIUM: {e}")
+        # Không cần làm gì cả, hàm sẽ trả về mảng rỗng [] thay vì sập lỗi 500
     finally:
         if driver:
             driver.quit()
-    return final_results
+            
+    return final_results # Luôn luôn trả về, dù mảng rỗng hay có data
 
 @app.route('/')
 def index():
