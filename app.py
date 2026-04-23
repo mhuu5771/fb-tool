@@ -17,37 +17,23 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
     
-    # Ép dùng đúng binary nếu chạy trên Linux (Render)
-    if os.name == 'posix':
-        chrome_options.binary_location = "/usr/bin/google-chrome"
-
     driver = None
     final_results = []
     
     try:
-        # Tự động tải Driver khớp với bản Chrome đã cài ở Dockerfile trên
+        # Không set binary_location thủ công nữa
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
-        driver.set_page_load_timeout(60)
         driver.get(start_url)
-        time.sleep(5) 
-        
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-
+        time.sleep(5)
         page_source = driver.page_source
         uids_found = re.findall(r'(?:"id":"|id=)([0-9]{13,15})', page_source)
         
-        seen_uids = set()
-        for uid in uids_found:
-            if uid not in seen_uids:
-                seen_uids.add(uid)
-                final_results.append({"uid": uid, "phone": get_phone_api(uid)})
-                if len(final_results) >= limit: break
-                    
+        for uid in uids_found[:limit]:
+            final_results.append({"uid": uid, "phone": get_phone_api(uid)})
+            
     except Exception as e:
         print(f"LỖI SELENIUM THỰC TẾ: {str(e)}")
     finally:
@@ -61,12 +47,9 @@ def index():
 
 @app.route('/scan', methods=['POST'])
 def scan():
-    try:
-        data = request.json
-        results = get_deep_uids(data.get('url'), int(data.get('limit', 10)))
-        return jsonify(results if results else [])
-    except:
-        return jsonify([])
+    data = request.json
+    results = get_deep_uids(data.get('url'), int(data.get('limit', 10)))
+    return jsonify(results)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5002))
