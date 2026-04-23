@@ -17,12 +17,15 @@ def get_deep_uids(start_url, limit):
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
     
+    # Chỉ định đường dẫn Chrome cho môi trường Linux (Render)
+    if os.path.exists("/usr/bin/google-chrome"):
+        chrome_options.binary_location = "/usr/bin/google-chrome"
+
     driver = None
-    final_results = []
-    
     try:
-        # Không set binary_location thủ công nữa
+        # Tự động tải Driver khớp với Chrome
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
